@@ -1,0 +1,123 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidString(value, minLen, maxLen) {
+      return value is string 
+        && value.size() >= minLen 
+        && value.size() <= maxLen;
+    }
+    
+    function isValidNumber(value, min, max) {
+      return value is number 
+        && value >= min 
+        && value <= max;
+    }
+
+    // User Profile
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) && 
+        request.resource.data.keys().hasAll(['email', 'displayName']) &&
+        isValidString(request.resource.data.displayName, 1, 100);
+      allow delete: if isOwner(userId);
+    }
+
+    // User Progress (XP, Coins, Level, Streaks)
+    match /users/{userId}/progress/{progressId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) &&
+        isValidNumber(request.resource.data.totalXP, 0, 10000000) &&
+        isValidNumber(request.resource.data.currentLevel, 1, 1000) &&
+        isValidNumber(request.resource.data.coins, 0, 1000000) &&
+        isValidNumber(request.resource.data.streakDays, 0, 10000);
+    }
+
+    // Tasks
+    match /users/{userId}/tasks/{taskId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        isValidString(request.resource.data.title, 1, 200) &&
+        request.resource.data.difficulty in ['EASY', 'MEDIUM', 'HARD', 'EPIC'] &&
+        request.resource.data.priority in ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Habits
+    match /users/{userId}/habits/{habitId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        isValidString(request.resource.data.name, 1, 100) &&
+        request.resource.data.frequency in ['DAILY', 'WEEKLY', 'CUSTOM'];
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Challenges (Habit Challenges)
+    match /users/{userId}/challenges/{challengeId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // Quests
+    match /users/{userId}/quests/{questId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // Journal Entries
+    match /users/{userId}/journal/{entryId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        isValidString(request.resource.data.content, 1, 10000) &&
+        request.resource.data.createdAt is timestamp;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Achievements
+    match /users/{userId}/achievements/{achievementId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // Pomodoro Sessions
+    match /users/{userId}/pomodoro/{sessionId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // Reward Shop Purchases
+    match /users/{userId}/purchases/{purchaseId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        isValidNumber(request.resource.data.cost, 1, 10000);
+      allow update: if false; // Purchases are immutable
+      allow delete: if false;
+    }
+
+    // Leaderboards (Public Read)
+    match /leaderboards/{leaderboardId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only cloud functions can update
+    }
+
+    // Analytics (Write-only for logging)
+    match /analytics/{analyticsId} {
+      allow read: if false;
+      allow create: if isAuthenticated();
+    }
+  }
+}

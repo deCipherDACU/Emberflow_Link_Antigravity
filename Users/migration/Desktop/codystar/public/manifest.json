@@ -1,0 +1,21 @@
+{
+  "name": "LifeQuest RPG",
+  "short_name": "LifeQuest",
+  "description": "Level Up Your Life, One Quest at a Time",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1021",
+  "theme_color": "#0B1021",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
